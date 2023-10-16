@@ -47,7 +47,7 @@ int main(){
     printf("%s",name);
 
     sscanf(name, "%s %s %s", first, second, year);
-    printf("this is your first name: %s\n", first);
+    printf("\nthis is your first name: %s\n", first);
     printf("this is your second name: %s\n", second);
     printf("this is your year: %s\n", year);
 }
