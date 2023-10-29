@@ -49,6 +49,8 @@ void dpl_free(dplist_t **list) {
     }
 
     free(*list);
+    
+    *list = NULL;
 }
 
 /* Important note: to implement any list manipulation operator (insert, append, delete, sort, ...), always be aware of the following cases:
