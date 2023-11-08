@@ -64,7 +64,27 @@ void yourtest1()
         ck_assert_msg(list == NULL, "Failure: expected result to be NULL");
 
         // TODO : your test scenarios
+        printf("***********************************\n");
 
+        list = dpl_create(element_copy, element_free, element_compare);
+
+        my_element_t *content = (my_element_t *)malloc(sizeof(my_element_t));
+        content->id = 5;
+        content->name = "foo";
+
+        dpl_insert_at_index(list, content, 0, true);
+
+        my_element_t *element = dpl_get_element_at_index(list,0);
+        if(element == NULL){
+            printf("NULL");
+        }
+        else{
+            printf("it works");
+        }
+        printf("%s",element->name);
+        dpl_free(&list, true);
+        ck_assert_msg(list == NULL, "Failure: expected result to be NULL");
+        free(content);
 
         }
 
