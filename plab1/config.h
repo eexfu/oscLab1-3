@@ -9,8 +9,8 @@
 #include <time.h>
 
 #define RUN_AVG_LENGTH 5
-#define SET_MAX_TEMP 40
-#define SET_MIN_TEMP 10
+#define SET_MAX_TEMP 25
+#define SET_MIN_TEMP 15
 
 typedef uint16_t sensor_id_t;
 typedef double sensor_value_t;

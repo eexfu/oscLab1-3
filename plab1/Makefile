@@ -9,7 +9,7 @@ gendebug: config.h file_creator.c
 	gcc -g file_creator.c config.h -o gendebug.out -DDEBUG
 
 memtest:
-	valgrind --leak-check=yes main.out
+	valgrind -s --leak-check=full --show-leak-kinds=all ./main.out
 
 debug:
 	gdb main.out

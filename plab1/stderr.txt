@@ -1,0 +1,4 @@
+The temperature is lower than SET_MIN_TEMP where sensorID = 15, roomID = 1
+The temperature is higher than SET_MAX_TEMP where sensorID = 112, roomID = 11
+The temperature is higher than SET_MAX_TEMP where sensorID = 132, roomID = 13
+The temperature is higher than SET_MAX_TEMP where sensorID = 142, roomID = 14

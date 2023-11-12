@@ -38,37 +38,6 @@ int element_compare(void *x, void *y){
     }
 }
 
-typedef struct {
-    uint16_t sensorID;
-    uint16_t roomID;
-}element_map_t;
-
-void *element_map_copy(void *element){
-    element_map_t *data = malloc(sizeof (element_map_t));
-
-    data->sensorID = ((element_map_t *)element)->sensorID;
-    data->roomID = ((element_map_t *)element)->roomID;
-
-    return (void *)data;
-}
-
-void element_map_free(void **element){
-    free(*element);
-    *element = NULL;
-}
-
-int element_map_compare(void *x, void *y){
-    if(((element_map_t *)x)->sensorID > ((element_map_t *)y)->sensorID){
-        return 1;
-    }
-    else if(((element_map_t *)x)->sensorID < ((element_map_t *)y)->sensorID){
-        return -1;
-    }
-    else{
-        return 0;
-    }
-}
-
 dplist_t *list = NULL;
 dplist_t *list_map = NULL;
 
@@ -76,6 +45,7 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
     datamgr_free();     //if user call this function multiple times
     list = dpl_create(element_copy, element_free, element_compare);
     list_map = dpl_create(element_copy, element_free, element_compare);
+    FILE *fp_stderr = fopen("stderr.txt","w+");
 
     element_t *data = malloc(sizeof (element_t));
     element_t *data_map = malloc(sizeof (element_t));
@@ -89,9 +59,12 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
     while(fscanf(fp_sensor_map,"%hu %hu", &roomID, &sensorID) == 2){
         data_map->sensorID = sensorID;
         data_map->roomID = roomID;
+        printf("sensorID: %hu ",sensorID);
+        printf("roomID: %hu ",roomID);
 
         dpl_insert_at_index(list_map, data_map, index_map, true);
         index_map++;
+        printf("index_map: %d\n",index_map);
     }
 
     while(fread(&sensorID, sizeof(sensorID), 1, fp_sensor_data) == 1 &&
@@ -108,37 +81,82 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
     }
 
     dplist_t *list_temp = NULL;
+    dplist_t *list_sorted = NULL;
 
     for(int i=0;i< dpl_size(list_map);i++){
-        list_temp = dpl_create(NULL, NULL, NULL);
+        list_temp = dpl_create(element_copy, element_free, element_compare);
+        list_sorted = dpl_create(element_copy, element_free, element_compare);
         sensorID = ((element_t *)dpl_get_element_at_index(list, i))->sensorID;
         element_t *element = NULL;
-        int size = dpl_size(list);
+        bool flag = false;
 
+        int size = dpl_size(list);
         for(int j=0;j< size;j++){
             element = dpl_get_element_at_index(list, j);
             if(element->sensorID == sensorID){
-                dpl_insert_at_index(list_temp, &(element->running_avg), size, false);
+                dpl_insert_at_index(list_temp, element, size, true);
             }
         }
 
         size = dpl_size(list_temp);
+        element_t *element_temp;
+        time_t time;
+        if(size<5){
+            flag = true;
+        }
+        else{
+            for(int j=0;j<5;j++){
+                timestamp = 0;
+                for(int k=0;k<size;k++){
+                    element = dpl_get_element_at_index(list_temp,k);
+                    element_temp = dpl_get_element_at_index(list_sorted,0);
+                    if(element_temp == NULL)
+                        time = 0;
+                    else
+                        time = element_temp->last_modified;
+                    if(timestamp < element->last_modified && (time > timestamp || j == 0)){
+                        timestamp = element->last_modified;
+                        index = k;
+                    }
+                }
+                dpl_insert_at_index(list_sorted, dpl_get_element_at_index(list_temp,index),j,true);
+            }
+        }
+
         double sum = 0;
         for(int j=0;j<RUN_AVG_LENGTH;j++){
-            sum = sum + *((double *)dpl_get_element_at_index(list_temp, size-j-1));
+            sum = sum + ((element_t *)dpl_get_element_at_index(list_sorted, j))->running_avg;
         }
 
         element = dpl_get_element_at_index(list_map, i);
-        element->running_avg = sum / RUN_AVG_LENGTH;
-        //element->last_modified
-        dpl_free(&list_temp,false);
+        element->running_avg = flag? 0 : sum / RUN_AVG_LENGTH;
+        element->last_modified = ((element_t *)dpl_get_element_at_index(list_sorted,0))->last_modified;
+        dpl_free(&list_temp,true);
+        dpl_free(&list_sorted,true);
     }
 
-    element_t *element = dpl_get_element_at_index(list_map, 9);
-    printf("sensorID: %hu\n",element->sensorID);
-    printf("roomID: %hu\n",element->roomID);
-    printf("running_avg: %lf\n",element->running_avg);
-    printf("last_modified: %ld\n",element->last_modified);
+    for(int i=0;i< dpl_size(list_map);i++){
+        element_t *element = dpl_get_element_at_index(list_map,i);
+        if(element->running_avg<SET_MIN_TEMP){
+            fprintf(fp_stderr,"The temperature is lower than SET_MIN_TEMP where sensorID = %hu, roomID = %hu\n",element->sensorID,element->roomID);
+        }
+        else if(element->running_avg>SET_MAX_TEMP){
+            fprintf(fp_stderr,"The temperature is higher than SET_MAX_TEMP where sensorID = %hu, roomID = %hu\n",element->sensorID, element->roomID);
+        }
+        else{
+
+        }
+    }
+
+    element_t *element = NULL;
+    for(int i=0;i< dpl_size(list_map);i++){
+        element = dpl_get_element_at_index(list_map, i);
+        printf("sensorID: %hu\n",element->sensorID);
+        printf("roomID: %hu\n",element->roomID);
+        printf("running_avg: %lf\n",element->running_avg);
+        printf("last_modified: %ld\n",element->last_modified);
+    }
+    fclose(fp_stderr);
 
     free(data);
     free(data_map);
@@ -161,11 +179,11 @@ uint16_t datamgr_get_room_id(sensor_id_t sensor_id){
         return -1;
     }
     else {
-        element_map_t *data_map = NULL;
+        element_t *data = NULL;
         for (int i = 0; i < dpl_size(list_map); i++) {
-            data_map = dpl_get_element_at_index(list_map, i);
-            if (data_map->sensorID == sensor_id) {
-                return data_map->roomID;
+            data = dpl_get_element_at_index(list_map, i);
+            if (data->sensorID == sensor_id) {
+                return data->roomID;
             }
         }
         ERROR_HANDLER(true, "This is not a valid result");
