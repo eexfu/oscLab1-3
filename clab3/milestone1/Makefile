@@ -20,6 +20,9 @@ memtest:
 debug:
 	gdb ./build/dplist_test
 
+cppcheck:
+	cppcheck --enable=all .
+
 clean:
 	rm -r build
 

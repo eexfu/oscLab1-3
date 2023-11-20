@@ -32,6 +32,8 @@ FILE * open_db(char * filename, bool append){
         close(fd[WRITE_END]);
         read(fd[READ_END],msg,16);
 
+        printf("open read_msg: %s\n",msg);
+
         write_to_log_process(msg);
 
         return NULL;
@@ -49,6 +51,7 @@ FILE * open_db(char * filename, bool append){
 
         close(fd[READ_END]);
         write(fd[WRITE_END],"Data file open.",16);
+        printf("open file.\n");
 
         return fp;
     }
@@ -63,8 +66,9 @@ int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts
         //logger
         char msg[SIZE];
 
-        close(fd[WRITE_END]);
         read(fd[READ_END],msg,15);
+
+        printf("insert read_msg: %s\n",msg);
 
         write_to_log_process(msg);
     }
@@ -72,8 +76,8 @@ int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts
         //storage manager
         fprintf(f,"%hu, %lf, %ld\n",id,value,ts);
 
-        close(fd[READ_END]);
         write(fd[WRITE_END],"Data inserted.",15);
+        printf("insert data.\n");
     }
 
     return 0;
@@ -88,12 +92,10 @@ int close_db(FILE * f){
         //logger
         char msg[SIZE];
 
-        close(fd[WRITE_END]);
-        int flag = read(fd[READ_END],msg,18);
+        read(fd[READ_END],msg,18);
         close(fd[READ_END]);
 
-        printf("receive: %s\n",msg);
-        printf("receive %d\n",flag);
+        printf("close read_msg: %s\n",msg);
 
         write_to_log_process(msg);
 
@@ -105,9 +107,9 @@ int close_db(FILE * f){
         //storage manager
         fclose(f);
 
-        close(fd[READ_END]);
         write(fd[WRITE_END],"Data file closed.",18);
         close(fd[WRITE_END]);
+        printf("close file.\n");
     }
 
     return 0;

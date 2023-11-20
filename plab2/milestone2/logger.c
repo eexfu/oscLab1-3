@@ -13,6 +13,7 @@ int write_to_log_process(char *msg){
     snprintf(write_msg,sizeof(write_msg),"%d - %s - %s\n",sequence,formatted_time,msg);
 
     fprintf(fp,"%s",write_msg);
+    fflush(fp);
 
     sequence++;
     return 0;

@@ -10,6 +10,9 @@ memtest: all
 debug:	all
 	gdb main.out
 
+cppcheck:
+	cppcheck --enable=all .
+
 zip:
 	zip milestone2.zip *.c *.h
 
