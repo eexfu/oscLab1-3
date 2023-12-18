@@ -2,20 +2,23 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <stdint-gcc.h>
+#include <stdbool.h>
 #include "logger.h"
 
 #define SIZE 25
 #define READ_END 0
 #define WRITE_END 1
+#define MAX_MESSAGE_SIZE 50
 
 pid_t pid;
 int fd[2];
 
 int write_to_log_process(char *msg){
-    if(write(fd[WRITE_END],msg,strlen(msg))){
-        return 0;
-    }
-    return -1;
+    uint16_t len = strlen(msg);
+    write(fd[WRITE_END], &len, sizeof(len));
+    write(fd[WRITE_END], msg, len);
+    return 0;
 }
 
 int create_log_process(){
@@ -34,20 +37,30 @@ int create_log_process(){
         FILE *fp = fopen("gateway.log","w");
         char msg[SIZE];
 
-        while(read(fd[READ_END],msg,sizeof(msg))){
-            int sequence = 0;
+        int sequence = 0;
+        uint16_t len;
+        while(1){
+            read(fd[READ_END], &len, sizeof(len));
+            char *buffer = malloc(len + 1);
+            read(fd[READ_END], buffer, len);
+            buffer[len] = '\0';
+            printf("%s\n",buffer);
+            fflush(fp);
+            if(strncmp(buffer, "break\0", len+1) == 0){
+                break;
+            }
             char write_msg[100];
             char formatted_time[50];
             time_t current = time(NULL);
             struct tm *time = localtime(&current);
             strftime(formatted_time, sizeof(formatted_time), "%a %b %d %H:%M:%S %Y", time);
-            snprintf(write_msg,sizeof(write_msg),"%d - %s - %s\n",sequence,formatted_time,msg);
+            snprintf(write_msg,sizeof(write_msg),"%d - %s - %s\n",sequence,formatted_time,buffer);
 
             fprintf(fp,"%s",write_msg);
             fflush(fp);
 
             sequence++;
-            sleep(1);
+            memset(msg, 0, sizeof(msg));
         }
 
         close(fd[READ_END]);
@@ -56,7 +69,6 @@ int create_log_process(){
     }
     else{
         close(fd[READ_END]);
-        write(fd[WRITE_END], "Data file open.", 16);
     }
 
     return 0;

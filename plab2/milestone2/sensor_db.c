@@ -7,7 +7,6 @@ FILE * open_db(char * filename, bool append){
     FILE *fp;
     if(append){
         fp = fopen(filename, "a");
-        printf("hi\n");
     }
     else
         fp = fopen(filename, "w");
@@ -15,37 +14,35 @@ FILE * open_db(char * filename, bool append){
     create_log_process();
 
     if(fp == NULL){
-        write_to_log_process("ERROR: opening file.");
+        write_to_log_process("ERROR: opening file.\0");
         return NULL;
     }
 
-    printf("open db\n");
-    write_to_log_process("Data file open.");
-    printf("out\n");
+    write_to_log_process("Data file open.\0");
     return fp;
 }
 
 int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts){
     if(fprintf(f, "%hu,%f,%ld\n", id, value, ts) < 0){
-        write_to_log_process("ERROR: inserting file.");
+        write_to_log_process("ERROR: inserting file.\0");
         return -1;
     }
 
-    printf("insert db\n");
-    write_to_log_process("Data inserted.");
+    char msg[100];
+    snprintf(msg, sizeof(msg),"%s%hu", "Data inserted ", id);
+    write_to_log_process(msg);
 
     return 0;
 }
 
 int close_db(FILE * f){
     if(fclose(f) != 0){
-        write_to_log_process("ERROR: closing file.");
+        write_to_log_process("ERROR: closing file.\0");
         return -1;
     }
 
-    printf("close db\n");
-    write_to_log_process("Data file close.");
-
+    write_to_log_process("Data file close.\0");
+    write_to_log_process("break");
     end_log_process();
     return 0;
 }
