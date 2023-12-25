@@ -19,10 +19,12 @@ int MAX_CONN;
 int PORT;
 pid_t pid;
 int number_of_client;
-// todo there sbuffer be only one buffer in the end
-sbuffer_t *buffer_datamgr;
-sbuffer_t *buffer_storagemgr;
+// todo there should be only one buffer in the end
+sbuffer_t *buffer;
 int fd[2];
+pthread_mutex_t mutex_logger;
+pthread_mutex_t mutex_reader;
+
 
 void initialize(char *argv[]);
 
@@ -61,10 +63,11 @@ int create_log_process(){
 }
 
 int write_to_log_process(char *msg){
-    // todo thread safe
+    pthread_mutex_lock(&mutex_logger);
     uint16_t len = strlen(msg);
     write(fd[WRITE_END], &len, sizeof(len));
     write(fd[WRITE_END], msg, len);
+    pthread_mutex_unlock(&mutex_logger);
     return 0;
 }
 
@@ -116,8 +119,9 @@ int main(int argc, char *argv[]){
         pthread_join(pthread_storagemgr, NULL);
 
         // free and close
-        sbuffer_free(&buffer_datamgr);
-        sbuffer_free(&buffer_storagemgr);
+        sbuffer_free(&buffer);
+        pthread_mutex_destroy(&mutex_logger);
+        pthread_mutex_destroy(&mutex_reader);
         end_log_process();
     }
 }
@@ -126,6 +130,7 @@ void initialize(char *argv[]){
     PORT = atoi(argv[1]);
     MAX_CONN = atoi(argv[2]);
     number_of_client = 0;
-    sbuffer_init(&buffer_datamgr);
-    sbuffer_init(&buffer_storagemgr);
+    sbuffer_init(&buffer);
+    pthread_mutex_init(&mutex_logger, NULL);
+    pthread_mutex_init(&mutex_reader, NULL);
 }
