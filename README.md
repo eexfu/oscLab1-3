@@ -1,6 +1,6 @@
 # oscLab1-3
 
-This is a repo for school assignment (mainly build)
+Notes: This is a repo for school assignment (mainly build)
 
 This project implements a TCP-based sensor data management system, responsible for acquiring data from sensor nodes and transmitting it over the network to be processed in a database. Technically, it uses C language for low-level programming, integrating network communication and data buffering mechanisms to ensure the reliable transmission and management of sensor data.
 
